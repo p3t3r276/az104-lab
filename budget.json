@@ -1,0 +1,49 @@
+{
+    "properties": {
+        "category": "Cost",
+        "amount": 200,
+        "timeGrain": "Monthly",
+        "timePeriod": {
+            "startDate": "2026-10-01T00:00:00Z",
+            "endDate": "2026-12-31T00:00:00Z"
+        },
+        "notifications": {
+            "Actual_50": {
+                "enabled": true,
+                "operator": "GreaterThanOrEqualTo",
+                "threshold": 50,
+                "thresholdType": "Actual",
+                "contactEmails": [
+                    "minhkhoale2706@gmailcom"
+                ]
+            },
+            "Actual_80": {
+                "enabled": true,
+                "operator": "GreaterThanOrEqualTo",
+                "threshold": 80,
+                "thresholdType": "Actual",
+                "contactEmails": [
+                    "minhkhoale2706@gmailcom"
+                ]
+            },
+            "Actual_100": {
+                "enabled": true,
+                "operator": "GreaterThanOrEqualTo",
+                "threshold": 100,
+                "thresholdType": "Actual",
+                "contactEmails": [
+                    "minhkhoale2706@gmailcom"
+                ]
+            },
+            "Forecast_100": {
+                "enabled": true,
+                "operator": "GreaterThanOrEqualTo",
+                "threshold": 100,
+                "thresholdType": "Forecasted",
+                "contactEmails": [
+                    "minhkhoale2706@gmailcom"
+                ]
+            }
+        }
+    }
+}
