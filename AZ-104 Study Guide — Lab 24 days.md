@@ -676,7 +676,7 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d06
 az group create -n $RG -l $LOC
 
@@ -765,6 +765,8 @@ az network nic show-effective-route-table -g $RG -n vm-spoke1VMNic -o table
 # Cleanup
 az group delete -n $RG --yes --no-wait
 ```
+
+<img src="img/lab_d06_hub_spoke_nva.svg" role="img" alt="lab_d06" width="800" />
 
 **Điểm hay thi:**
 
