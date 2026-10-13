@@ -14,7 +14,7 @@
                 "threshold": 50,
                 "thresholdType": "Actual",
                 "contactEmails": [
-                    "minhkhoale2706@gmailcom"
+                    "minhkhoale2706@gmail.com"
                 ]
             },
             "Actual_80": {
@@ -23,7 +23,7 @@
                 "threshold": 80,
                 "thresholdType": "Actual",
                 "contactEmails": [
-                    "minhkhoale2706@gmailcom"
+                    "minhkhoale2706@gmail.com"
                 ]
             },
             "Actual_100": {
@@ -32,7 +32,7 @@
                 "threshold": 100,
                 "thresholdType": "Actual",
                 "contactEmails": [
-                    "minhkhoale2706@gmailcom"
+                    "minhkhoale2706@gmail.com"
                 ]
             },
             "Forecast_100": {
@@ -41,7 +41,7 @@
                 "threshold": 100,
                 "thresholdType": "Forecasted",
                 "contactEmails": [
-                    "minhkhoale2706@gmailcom"
+                    "minhkhoale2706@gmail.com"
                 ]
             }
         }

@@ -452,6 +452,7 @@ az group delete -n rg-lab-d03b --yes --no-wait
 ```bash
 # Prep: variables and resource group
 LOC=southeastasia
+# Vm thì nên ở eastasia
 RG=rg-lab-d04
 SUB=$(az account show --query id -o tsv)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains \
@@ -459,7 +460,7 @@ DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains \
 az group create -n $RG -l $LOC
 
 # Step 1: Create a VM with defaults
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys
 
 # Step 1: See what az vm create made (VNet, NSG, public IP, NIC, OS disk)
@@ -481,7 +482,7 @@ az vm list-sizes -l $LOC \
 az vm list-vm-resize-options -g $RG -n vm1 -o table
 
 # Step 3: Resize
-az vm resize -g $RG -n vm1 --size Standard_B2s
+az vm resize -g $RG -n vm1 --size Standard_D4as_v6
 
 # Step 4: Attach a new 32 GB data disk
 az vm disk attach -g $RG --vm-name vm1 --name data1 --new --size-gb 32 \
@@ -492,9 +493,9 @@ az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript --scripts "ls
 
 # Step 4: Partition, format and mount it at /data
 az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript --scripts \
-  "sudo parted /dev/sdc --script mklabel gpt mkpart primary ext4 0% 100% && sleep 2 && sudo mkfs.ext4 -F /dev/sdc1 && sudo mkdir -p /data && sudo mount /dev/sdc1 /data && df -h /data"
+  "sudo parted /dev/nvme0n2 --script mklabel gpt mkpart primary ext4 0% 100% && sleep 2 && sudo mkfs.ext4 -F /dev/nvme0n2p1 && sudo mkdir -p /data && sudo mount /dev/nvme0n2p1 /data && df -h /data"
 
-# Step 5: Install nginx with the Custom Script extension
+# Step 5: Install nginx with the *Custom Script* extension
 az vm extension set -g $RG --vm-name vm1 --name CustomScript \
   --publisher Microsoft.Azure.Extensions \
   --settings '{"commandToExecute":"apt-get -y update && apt-get -y install nginx"}'
@@ -525,7 +526,7 @@ az login
 az vm start -g rg-lab-d04 -n vm1
 
 # Step 7 (lab-ops): resize is not in the role - expect AuthorizationFailed
-az vm resize -g rg-lab-d04 -n vm1 --size Standard_B1s
+az vm resize -g rg-lab-d04 -n vm1 --size Standard_D2ads_v6
 
 # Cleanup (lab-ops terminal)
 unset AZURE_CONFIG_DIR
@@ -559,6 +560,8 @@ az group delete -n $RG --yes --no-wait
 5. Tạo *ASG* `asg-web`, gắn NIC vào, viết rule HTTPS theo ASG.
 6. Xem effective rules; dùng *IP flow verify* với một IP được phép và một IP bị chặn.
 
+<img src="img/lab_d05_network_diagram.svg" role="img" alt="A raster star" />
+
 ```bash
 # Prep: variables and resource group
 LOC=southeastasia
@@ -567,7 +570,7 @@ MYIP=$(curl -s https://api.ipify.org)
 az group create -n $RG -l $LOC
 
 # Step 1: Create the VNet with the first subnet
-az network vnet create -g $RG -n vnet-hub --address-prefix 10.0.0.0/16 \
+az network vnet create -g $RG -l $LOC -n vnet-hub --address-prefix 10.0.0.0/16 \
   --subnet-name snet-web --subnet-prefixes 10.0.1.0/24
 
 # Step 1: Add a second subnet
@@ -575,7 +578,7 @@ az network vnet subnet create -g $RG --vnet-name vnet-hub -n snet-app \
   --address-prefixes 10.0.2.0/24
 
 # Step 2: Create the subnet NSG
-az network nsg create -g $RG -n nsg-web
+az network nsg create -g $RG -l $LOC -n nsg-web
 
 # Step 2: Allow SSH only from your IP
 az network nsg rule create -g $RG --nsg-name nsg-web -n allow-ssh-myip \
@@ -587,7 +590,7 @@ az network vnet subnet update -g $RG --vnet-name vnet-hub -n snet-web \
   --network-security-group nsg-web
 
 # Step 3: Create vm1 in snet-web, no NIC-level NSG
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-hub --subnet snet-web --nsg ""
 
@@ -607,7 +610,7 @@ az network nsg rule create -g $RG --nsg-name nsg-web -n allow-http \
 curl -m 5 http://$IP
 
 # Step 4: Add a NIC-level NSG that has no HTTP rule
-az network nsg create -g $RG -n nsg-nic
+az network nsg create -g $RG -l $LOC -n nsg-nic
 az network nic update -g $RG -n vm1VMNic --network-security-group nsg-nic
 
 # Step 4: curl now times out - both NSGs must allow
@@ -620,7 +623,7 @@ az network nsg rule create -g $RG --nsg-name nsg-nic -n allow-http \
 curl -m 5 http://$IP
 
 # Step 5: Create an ASG and put vm1's NIC in it
-az network asg create -g $RG -n asg-web
+az network asg create -g $RG -l $LOC -n asg-web
 az network nic ip-config update -g $RG --nic-name vm1VMNic -n ipconfigvm1 \
   --application-security-groups asg-web
 
@@ -636,7 +639,12 @@ az network nic list-effective-nsg -g $RG -n vm1VMNic
 az network watcher configure -g NetworkWatcherRG -l $LOC --enabled true
 
 # Step 6: IP flow verify - your IP on port 22 (Allow)
+az network nsg rule create -g $RG --nsg-name nsg-nic -n allow-ssh-myip \
+  --priority 100 --direction Inbound --access Allow --protocol Tcp \
+  --destination-port-ranges 22 --source-address-prefixes $MYIP
+
 PRIV=$(az vm show -d -g $RG -n vm1 --query privateIps -o tsv)
+
 az network watcher test-ip-flow -g $RG --vm vm1 --direction Inbound \
   --protocol TCP --local $PRIV:22 --remote $MYIP:50000
 
@@ -647,7 +655,7 @@ az network watcher test-ip-flow -g $RG --vm vm1 --direction Inbound \
 # Cleanup
 az group delete -n $RG --yes --no-wait
 ```
-
+---
 **Điểm hay thi:**
 
 - Azure giữ lại 5 IP mỗi subnet (4 đầu + 1 cuối); /29 chỉ còn 3 IP dùng được.
@@ -674,6 +682,8 @@ az group delete -n $RG --yes --no-wait
 6. Tạo route table cho 2 spoke, next hop về NVA; ping lại.
 7. Kiểm tra bằng *Next hop* và effective routes.
 
+<img src="img/lab_d06_hub_spoke_nva.svg" role="img" alt="lab_d06" width="800" />
+
 ```bash
 # Prep: variables and resource group
 LOC=eastasia
@@ -681,24 +691,24 @@ RG=rg-lab-d06
 az group create -n $RG -l $LOC
 
 # Step 1: Create the three VNets
-az network vnet create -g $RG -n vnet-hub --address-prefix 10.0.0.0/16 \
+az network vnet create -g $RG -l $LOC -n vnet-hub --address-prefix 10.0.0.0/16 \
   --subnet-name snet-nva --subnet-prefixes 10.0.3.0/24
-az network vnet create -g $RG -n vnet-spoke1 --address-prefix 10.1.0.0/16 \
+az network vnet create -g $RG -l $LOC -n vnet-spoke1 --address-prefix 10.1.0.0/16 \
   --subnet-name default --subnet-prefixes 10.1.0.0/24
-az network vnet create -g $RG -n vnet-spoke2 --address-prefix 10.2.0.0/16 \
+az network vnet create -g $RG -l japanwest -n vnet-spoke2 --address-prefix 10.2.0.0/16 \
   --subnet-name default --subnet-prefixes 10.2.0.0/24
 
 # Step 2: Create the NVA with a fixed private IP and no public IP
-az vm create -g $RG -n vm-nva --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm-nva --image Ubuntu2204 --size Standard_D2as_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-hub --subnet snet-nva --private-ip-address 10.0.3.4 \
   --public-ip-address ""
 
 # Step 2: Create one VM per spoke, no public IP
-az vm create -g $RG -n vm-spoke1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm-spoke1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-spoke1 --subnet default --public-ip-address ""
-az vm create -g $RG -n vm-spoke2 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l japanwest -n vm-spoke2 --image Ubuntu2204 --size Standard_DC1ds_v3 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-spoke2 --subnet default --public-ip-address ""
 
@@ -735,7 +745,7 @@ az vm run-command invoke -g $RG -n vm-nva --command-id RunShellScript \
   --scripts "sudo sysctl -w net.ipv4.ip_forward=1"
 
 # Step 6: Route table for spoke1: traffic to spoke2 goes via the NVA
-az network route-table create -g $RG -n rt-spoke1
+az network route-table create -g $RG -l $LOC -n rt-spoke1
 az network route-table route create -g $RG --route-table-name rt-spoke1 \
   -n to-spoke2 --address-prefix 10.2.0.0/16 \
   --next-hop-type VirtualAppliance --next-hop-ip-address 10.0.3.4
@@ -743,7 +753,7 @@ az network vnet subnet update -g $RG --vnet-name vnet-spoke1 -n default \
   --route-table rt-spoke1
 
 # Step 6: Route table for spoke2: return traffic to spoke1 via the NVA
-az network route-table create -g $RG -n rt-spoke2
+az network route-table create -g $RG -l japanwest -n rt-spoke2
 az network route-table route create -g $RG --route-table-name rt-spoke2 \
   -n to-spoke1 --address-prefix 10.1.0.0/16 \
   --next-hop-type VirtualAppliance --next-hop-ip-address 10.0.3.4
@@ -765,8 +775,7 @@ az network nic show-effective-route-table -g $RG -n vm-spoke1VMNic -o table
 # Cleanup
 az group delete -n $RG --yes --no-wait
 ```
-
-<img src="img/lab_d06_hub_spoke_nva.svg" role="img" alt="lab_d06" width="800" />
+---
 
 **Điểm hay thi:**
 
@@ -775,6 +784,7 @@ az group delete -n $RG --yes --no-wait
 - Gateway transit: *Allow gateway transit* ở hub, *Use remote gateways* ở spoke (hub phải có VPN/ExpressRoute gateway).
 - Route table gắn vào subnet. Next hop types: VirtualAppliance, VirtualNetworkGateway, VnetLocal, Internet, None.
 - NVA cần bật IP forwarding ở cả NIC lẫn trong OS.
+- 1 region có quota cpus của VM.
 
 **Tự kiểm tra:** Spoke1 và spoke2 đều peer với hub, VM spoke1 có ping được VM spoke2 không? Bạn đã cần những thay đổi nào để được?
 
@@ -795,7 +805,7 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d07
 SA=stkhoalab$RANDOM
 ME=$(az ad signed-in-user show --query id -o tsv)
@@ -903,6 +913,7 @@ az group delete -n $RG --yes --no-wait
 - Lưu tối thiểu: Cool 30 ngày, Cold 90 ngày, Archive 180 ngày; xóa hoặc chuyển sớm vẫn tính phí.
 - Object replication cần versioning ở cả hai account và change feed ở account nguồn.
 - Premium account không có tier Hot/Cool/Archive.
+- Có thể dùng sharedkey để account storage account.
 
 **Tự kiểm tra:** Vì sao Owner vẫn lỗi khi dùng `--auth-mode login`? Yêu cầu vẫn đọc được dữ liệu khi region chính sập và chịu được mất một zone, chọn redundancy nào?
 
