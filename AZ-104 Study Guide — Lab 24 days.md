@@ -866,7 +866,21 @@ az storage blob list --account-name $SA -c data --include v --auth-mode login \
 
 # Step 5: Delete the blob, then undelete it
 az storage blob delete --account-name $SA -c data -n doc.txt --auth-mode login
+
+# works soft-delete enabled, versioning disabled
 az storage blob undelete --account-name $SA -c data -n doc.txt --auth-mode login
+
+# Versioning disabled
+# Delete blob thì Azure không soft-delete blob. Nó chỉ xóa current version, còn dữ liệu cũ vẫn nằm lại dưới dạng một previous version.
+# Lúc này blob không còn current version, nên portal hiển thị là “deleted”.
+VID="<versionId muốn restore>"
+az storage blob copy start --account-name $SA --auth-mode login \
+  --destination-container data --destination-blob doc.txt \
+  --source-uri "https://$SA.blob.core.windows.net/data/doc.txt?versionid=$VID"
+
+# Check if verionsing is enabled
+az storage account blob-service-properties show --account-name $SA \
+  --query "{versioning:isVersioningEnabled, softDelete:deleteRetentionPolicy}"
 
 # Step 6: Create the lifecycle policy (policy.json below) and read it back
 az storage account management-policy create -g $RG --account-name $SA --policy @policy.json
