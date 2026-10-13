@@ -1178,6 +1178,10 @@ az group delete -n $RG --yes --no-wait
 5. Tắt nginx trên vm1, thấy LB chỉ trả về vm2.
 6. Tạo Application Gateway Standard\_v2 trong subnet riêng, `/api/*` → vm1, `/images/*` → vm2; xóa ngay sau khi test.
 
+<img src="img/lab_d10_components.svg" role="img" alt="A raster star" />
+
+<img src="img/lab_d10_access_map.svg" role="img" alt="A raster star" />
+
 ```bash
 # Prep: variables and resource group
 LOC=southeastasia
