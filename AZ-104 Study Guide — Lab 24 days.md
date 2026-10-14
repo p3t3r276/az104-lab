@@ -949,7 +949,7 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d08
 SA=stkhoalab$RANDOM
 ME=$(az ad signed-in-user show --query id -o tsv)
@@ -959,7 +959,7 @@ EXP=$(date -u -d "+1 day" '+%Y-%m-%dT%H:%MZ')      # Linux
 az group create -n $RG -l $LOC
 
 # Step 1: Storage account + data role + container + blob (same as Day 7)
-az storage account create -g $RG -n $SA --sku Standard_LRS --kind StorageV2 \
+az storage account create -g $RG -l $LOC -n $SA --sku Standard_LRS --kind StorageV2 \
   --allow-blob-public-access false
 az role assignment create --assignee $ME --role "Storage Blob Data Contributor" \
   --scope $(az storage account show -g $RG -n $SA --query id -o tsv)
@@ -1005,7 +1005,7 @@ az storage share-rm create -g $RG --storage-account $SA -n share1 --quota 100
 az storage file upload --account-name $SA --share-name share1 --source hello.txt --account-key $KEY
 
 # Step 5: Create a Linux VM and mount the share over SMB 3.1.1 (port 445)
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_D2as_v6 \
   --admin-username azureuser --generate-ssh-keys
 az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript --scripts \
   "apt-get -y install cifs-utils >/dev/null && mkdir -p /mnt/share1 && mount -t cifs //$SA.file.core.windows.net/share1 /mnt/share1 -o username=$SA,password=$KEY,vers=3.1.1,serverino && ls -l /mnt/share1"
@@ -1016,6 +1016,8 @@ sudo mv /tmp/azcopy /usr/local/bin/
 
 # Step 6: Sign in to AzCopy with Entra ID (uses your data role)
 azcopy login --tenant-id $(az account show --query tenantId -o tsv)
+## Try this is above command failed
+azcopy login --login-type AZCLI --tenant-id $(az account show --query tenantId -o tsv)
 
 # Step 6: Copy a folder, then sync after changing it
 mkdir -p sync-demo && echo "a" > sync-demo/a.txt && echo "b" > sync-demo/b.txt
