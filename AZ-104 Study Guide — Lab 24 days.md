@@ -931,7 +931,7 @@ az group delete -n $RG --yes --no-wait
 
 **Tự kiểm tra:** Vì sao Owner vẫn lỗi khi dùng `--auth-mode login`? Yêu cầu vẫn đọc được dữ liệu khi region chính sập và chịu được mất một zone, chọn redundancy nào?
 
-## Ngày 8 — SAS, Azure Files, AzCopy, firewall
+## Ngày 8 — SAS, Azure Files, AzCopy, firewall ✅
 
 **Mục tiêu:** phát hành và thu hồi cả 3 loại *SAS*; dùng Azure Files từ VM; copy dữ liệu bằng AzCopy; khóa account bằng firewall.
 
@@ -1072,9 +1072,13 @@ az group delete -n $RG --yes --no-wait
 4. Bật service endpoint `Microsoft.Storage` cho `snet-app`, thêm VNet rule; VM đọc được, máy bạn bị chặn.
 5. Tạo private endpoint cho blob và private DNS zone `privatelink`; `nslookup` từ VM trả về IP private.
 
+![Lab 9 components](img/azure_day9_lab_components.svg)
+
+![Lab 9 dns resolution](img/azure_day9_dns_resolution_paths.svg)
+
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d09
 SA=stkhoalab$RANDOM
 ZONE=khoalab$RANDOM.com
@@ -1107,7 +1111,7 @@ az network private-dns link vnet create -g $RG -z corp.internal -n link-hub \
   -v vnet-hub -e true
 
 # Step 2: Create a VM - its A record registers itself
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2as_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-hub --subnet snet-app
 az network private-dns record-set a list -g $RG -z corp.internal -o table
@@ -1117,7 +1121,7 @@ az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript \
   --scripts "nslookup vm1.corp.internal"
 
 # Step 3: Storage + data role + container + blob + SAS (Day 7-8)
-az storage account create -g $RG -n $SA --sku Standard_LRS --kind StorageV2 \
+az storage account create -g $RG -l $LOC -n $SA --sku Standard_LRS --kind StorageV2 \
   --allow-blob-public-access false
 SA_ID=$(az storage account show -g $RG -n $SA --query id -o tsv)
 az role assignment create --assignee $ME --role "Storage Blob Data Contributor" --scope $SA_ID
@@ -1200,7 +1204,7 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d10
 MYIP=$(curl -s https://api.ipify.org)
 az group create -n $RG -l $LOC
@@ -1220,7 +1224,7 @@ az network vnet subnet update -g $RG --vnet-name vnet-web -n snet-web \
 
 # Step 2: Two VMs (Standard public IP kept for outbound apt), no NIC NSG
 for VM in vm1 vm2; do
-  az vm create -g $RG -n $VM --image Ubuntu2204 --size Standard_B1s \
+  az vm create -g $RG -n $VM --image Ubuntu2204 --size Standard_D2as_v6 \
     --admin-username azureuser --generate-ssh-keys \
     --vnet-name vnet-web --subnet snet-web --nsg ""
 done
