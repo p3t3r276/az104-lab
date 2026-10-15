@@ -1200,7 +1200,7 @@ az group delete -n $RG --yes --no-wait
 
 <img src="img/lab_d10_components.svg" role="img" alt="A raster star" />
 
-<img src="img/lab_d10_access_map.svg" role="img" alt="A raster star" />
+![Lab 10 access map](img/lab_d10_access_map.svg)
 
 ```bash
 # Prep: variables and resource group
