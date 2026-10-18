@@ -1183,7 +1183,7 @@ az group delete -n $RG --yes --no-wait
 
 **Tự kiểm tra:** Công ty cần truy cập storage từ văn phòng qua VPN bằng IP private, chọn service endpoint hay private endpoint?
 
-## Ngày 10 — Load Balancer và Application Gateway
+## Ngày 10 — Load Balancer và Application Gateway ✅
 
 **Mục tiêu:** dựng *Standard Load Balancer* cho 2 VM, thấy health probe loại VM lỗi; làm path-based routing với *Application Gateway*. Xóa App Gateway ngay khi xong.
 
@@ -1210,9 +1210,9 @@ MYIP=$(curl -s https://api.ipify.org)
 az group create -n $RG -l $LOC
 
 # Step 1: VNet, web subnet, NSG
-az network vnet create -g $RG -n vnet-web --address-prefix 10.0.0.0/16 \
+az network vnet create -g $RG -l $LOC -n vnet-web --address-prefix 10.0.0.0/16 \
   --subnet-name snet-web --subnet-prefixes 10.0.1.0/24
-az network nsg create -g $RG -n nsg-web
+az network nsg create -g $RG -l $LOC -n nsg-web
 az network nsg rule create -g $RG --nsg-name nsg-web -n allow-http \
   --priority 100 --direction Inbound --access Allow --protocol Tcp \
   --destination-port-ranges 80 --source-address-prefixes Internet
@@ -1224,7 +1224,7 @@ az network vnet subnet update -g $RG --vnet-name vnet-web -n snet-web \
 
 # Step 2: Two VMs (Standard public IP kept for outbound apt), no NIC NSG
 for VM in vm1 vm2; do
-  az vm create -g $RG -n $VM --image Ubuntu2204 --size Standard_D2as_v6 \
+  az vm create -g $RG -l $LOC -n $VM --image Ubuntu2204 --size Standard_D2as_v6 \
     --admin-username azureuser --generate-ssh-keys \
     --vnet-name vnet-web --subnet snet-web --nsg ""
 done
@@ -1237,8 +1237,8 @@ for VM in vm1 vm2; do
 done
 
 # Step 3: Standard public IP and Standard LB
-az network public-ip create -g $RG -n pip-lb --sku Standard
-az network lb create -g $RG -n lb-web --sku Standard --public-ip-address pip-lb \
+az network public-ip create -g $RG -l $LOC -n pip-lb --sku Standard
+az network lb create -g $RG -l $LOC -n lb-web --sku Standard --public-ip-address pip-lb \
   --frontend-ip-name fe --backend-pool-name be
 
 # Step 3: Health probe and load-balancing rule
@@ -1276,20 +1276,18 @@ az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript \
 # Step 6: Dedicated subnet and public IP for App Gateway
 az network vnet subnet create -g $RG --vnet-name vnet-web -n snet-agw \
   --address-prefixes 10.0.10.0/24
-az network public-ip create -g $RG -n pip-agw --sku Standard
+az network public-ip create -g $RG -l $LOC -n pip-agw --sku Standard
 IP1=$(az vm show -d -g $RG -n vm1 --query privateIps -o tsv)
 IP2=$(az vm show -d -g $RG -n vm2 --query privateIps -o tsv)
 
 # Step 6: Create App Gateway (default pool = both VMs, rule name rule1)
-az network application-gateway create -g $RG -n agw --sku Standard_v2 \
+az network application-gateway create -g $RG -l $LOC -n agw --sku Standard_v2 \
   --capacity 1 --vnet-name vnet-web --subnet snet-agw \
   --public-ip-address pip-agw --priority 100 --servers $IP1 $IP2
 
 # Step 6: One backend pool per path
-az network application-gateway address-pool create -g $RG --gateway-name agw \
-  -n pool-api --servers $IP1
-az network application-gateway address-pool create -g $RG --gateway-name agw \
-  -n pool-images --servers $IP2
+az network application-gateway address-pool create -g $RG --gateway-name agw -n pool-api --servers $IP1
+az network application-gateway address-pool create -g $RG --gateway-name agw -n pool-images --servers $IP2
 
 # Step 6: Path map: /api/* -> pool-api, default -> both VMs
 az network application-gateway url-path-map create -g $RG --gateway-name agw \
@@ -1304,8 +1302,7 @@ az network application-gateway url-path-map rule create -g $RG --gateway-name ag
   --address-pool pool-images --http-settings appGatewayBackendHttpSettings
 
 # Step 6: Switch the routing rule to path-based
-az network application-gateway rule update -g $RG --gateway-name agw -n rule1 \
-  --rule-type PathBasedRouting --url-path-map pathmap
+az network application-gateway rule update -g $RG --gateway-name agw -n rule1 --rule-type PathBasedRouting --url-path-map pathmap
 
 # Step 6: Test - /api/ always vm1, /images/ always vm2
 AGW_IP=$(az network public-ip show -g $RG -n pip-agw --query ipAddress -o tsv)
@@ -1351,7 +1348,7 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d11
 SA=stkhoalab$RANDOM
 az group create -n $RG -l $LOC
