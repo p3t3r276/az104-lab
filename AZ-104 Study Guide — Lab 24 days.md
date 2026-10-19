@@ -1501,6 +1501,10 @@ resource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 
 output saName string = sa.name
 ```
+---
+![Lab 12 Resource map](img/lab_d12_resource_map_cream.svg)
+![Lab 12 network flow](img/lab_d12_network_flow.svg)
+
 
 ```bash
 # Prep: variables and resource group
@@ -1573,7 +1577,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
           sourceAddressPrefix: myIp
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
-          destinationPortRange: '22'
+  s        destinationPortRange: '22'
         }
       }
     ]
