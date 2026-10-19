@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 1440 1770" role="img" aria-labelledby="title desc">
+  <title id="title">Lab 20: Network và data flow</title>
+  <desc id="desc">Tám luồng độc lập: Run Command, token managed identity, cấu hình DCR, ingest logs, platform metrics và email alert, Activity log, KQL và SSH tùy chọn. Ghi rõ HTTPS outbound, HTTP link-local và quyền truy cập.</desc>
+  <defs>
+    <style>
+      text { font-family: 'Segoe UI', sans-serif; font-size: 18px; fill: #24332F; }
+      .title { font-size: 32px; font-weight: 700; }
+      .heading { font-size: 21px; font-weight: 650; }
+      .small { font-size: 16px; fill: #52615B; }
+      .label { font-size: 15px; fill: #176C89; text-anchor: middle; }
+      .node { fill: #EDF6F4; stroke: #22796F; stroke-width: 1.5; }
+      .host { fill: #E5F3EC; stroke: #29815D; stroke-width: 1.5; }
+      .person { fill: #FFF0E9; stroke: #B56746; stroke-width: 1.5; }
+      .network { fill: #EDF3F7; stroke: #397593; stroke-width: 1.5; }
+      .edge { fill: none; stroke: #176C89; stroke-width: 2; marker-end: url(#arrow); }
+      .logical { fill: none; stroke: #68746D; stroke-width: 2; stroke-dasharray: 7 5; marker-end: url(#gray); }
+      .divider { stroke: #CBD3CC; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#176C89"/></marker>
+    <marker id="gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#68746D"/></marker>
+  </defs>
+  <rect width="1440" height="1770" fill="#FCFAF4"/>
+  <text x="40" y="54" class="title">LAB 20 / NETWORK + DATA FLOW</text>
+  <text x="40" y="88">Mỗi hàng là một luồng độc lập; các mũi tên giữa dịch vụ Azure là quan hệ xử lý, không phải VM hop.</text>
+  <path d="M40 121 H100" class="edge"/><text x="113" y="127" class="small">Request / truyền dữ liệu</text>
+  <path d="M390 121 H450" class="logical"/><text x="463" y="127" class="small">Xử lý / chuyển tiếp nội bộ Azure</text>
+  <text x="920" y="127" class="small">Luồng VM ra public endpoint cần egress + DNS.</text>
+
+  <text x="40" y="177" class="heading">01 / ĐIỀU KHIỂN: tạo tải CPU bằng Run Command</text>
+  <rect x="40" y="200" width="270" height="76" rx="6" class="person"/>
+  <text x="58" y="230">Bạn / az login</text><text x="58" y="257" class="small">az vm run-command invoke</text>
+  <path d="M310 238 H400" class="edge"/><text x="355" y="223" class="label">443</text>
+  <rect x="400" y="200" width="280" height="76" rx="6" class="network"/>
+  <text x="418" y="230">ARM / Compute API</text><text x="418" y="257" class="small">management.azure.com / RBAC</text>
+  <path d="M680 238 H770" class="logical"/>
+  <rect x="770" y="200" width="270" height="76" rx="6" class="host"/>
+  <text x="788" y="230">VM Agent trên vm1</text><text x="788" y="257" class="small">Nhận lệnh qua Azure fabric</text>
+  <path d="M1040 238 H1130" class="edge"/><text x="1085" y="223" class="label">local</text>
+  <rect x="1130" y="200" width="270" height="76" rx="6" class="host"/>
+  <text x="1148" y="230">RunShellScript / root</text><text x="1148" y="257" class="small">stress-ng --cpu 1 / 900s</text>
+  <text x="40" y="307" class="small">Cần quyền VM runCommand/action. Không cần inbound SSH; apt-get cần egress tới Ubuntu repositories (80/443).</text>
+  <path d="M40 326 H1400" class="divider"/>
+
+  <text x="40" y="362" class="heading">02 / IDENTITY: AMA lấy token của system-assigned MI</text>
+  <rect x="40" y="385" width="270" height="76" rx="6" class="host"/>
+  <text x="58" y="415">AMA trên vm1</text><text x="58" y="442" class="small">Yêu cầu access token</text>
+  <path d="M310 423 H770" class="edge" marker-start="url(#arrow)"/>
+  <text x="540" y="407" class="label">HTTP 80 / request → · ← token response</text>
+  <rect x="770" y="385" width="270" height="76" rx="6" class="network"/>
+  <text x="788" y="415">IMDS / link-local</text><text x="788" y="442" class="small">169.254.169.254 / Metadata: true</text>
+  <text x="1130" y="417">Identity gắn với vm1</text><text x="1130" y="445" class="small">Không có role assignment</text>
+  <text x="40" y="492" class="small">IMDS không đi qua Internet. Token MI dùng cho Azure Monitor; không tự cấp quyền đọc logs hoặc quản trị workspace.</text>
+  <path d="M40 511 H1400" class="divider"/>
+
+  <text x="40" y="547" class="heading">03 / CONFIG: AMA nhận cấu hình được gắn qua dcra-vm1</text>
+  <rect x="40" y="570" width="270" height="76" rx="6" class="host"/>
+  <text x="58" y="600">AMA + MI token</text><text x="58" y="627" class="small">Kết nối outbound từ vm1</text>
+  <path d="M310 608 H770" class="edge" marker-start="url(#arrow)"/>
+  <text x="540" y="592" class="label">HTTPS 443 / request → · ← config response</text>
+  <rect x="770" y="570" width="270" height="76" rx="6" class="node"/>
+  <text x="788" y="600">Monitor config service</text><text x="788" y="627" class="small">AMCS / public endpoint</text>
+  <path d="M1040 608 H1130" class="logical"/>
+  <rect x="1130" y="570" width="270" height="76" rx="6" class="node"/>
+  <text x="1148" y="600">dcra-vm1 → dcr-perf</text><text x="1148" y="627" class="small">CPU + RAM / cadence 60s</text>
+  <text x="40" y="677" class="small">DCRA gắn VM_ID với DCR_ID. DCR mô tả nguồn, stream và đích; không phải proxy để packet đi qua.</text>
+  <path d="M40 696 H1400" class="divider"/>
+
+  <text x="40" y="732" class="heading">04 / GUEST LOGS: Perf và Heartbeat → Log Analytics</text>
+  <rect x="40" y="755" width="270" height="76" rx="6" class="host"/>
+  <text x="58" y="785">Linux OS trên vm1</text><text x="58" y="812" class="small">CPU / free memory counters</text>
+  <path d="M310 793 H400" class="edge"/><text x="355" y="778" class="label">local</text>
+  <rect x="400" y="755" width="280" height="76" rx="6" class="host"/>
+  <text x="418" y="785">AMA / Microsoft-Perf</text><text x="418" y="812" class="small">Perf mỗi 60s + agent heartbeat</text>
+  <path d="M680 793 H770" class="edge"/><text x="725" y="778" class="label">443 out</text>
+  <rect x="770" y="755" width="270" height="76" rx="6" class="node"/>
+  <text x="788" y="785">Monitor ingestion</text><text x="788" y="812" class="small">Public endpoint / xác thực MI</text>
+  <path d="M1040 793 H1130" class="logical"/>
+  <rect x="1130" y="755" width="270" height="76" rx="6" class="node"/>
+  <text x="1148" y="785">law-lab</text><text x="1148" y="812" class="small">Tables: Perf, Heartbeat</text>
+  <text x="40" y="862" class="small">VM → NIC → subnet / NSG → egress → public endpoint. Không cần inbound 443; lab không tạo DCE / AMPLS / private endpoint.</text>
+  <path d="M40 881 H1400" class="divider"/>
+
+  <text x="40" y="917" class="heading">05 / PLATFORM METRIC: alert CPU → email, độc lập với AMA / DCR / LAW</text>
+  <rect x="40" y="940" width="220" height="76" rx="6" class="host"/>
+  <text x="56" y="970">Azure VM platform</text><text x="56" y="997" class="small">CPU của vm1</text>
+  <path d="M260 978 H325" class="logical"/>
+  <rect x="325" y="940" width="220" height="76" rx="6" class="node"/>
+  <text x="341" y="970">Azure Monitor Metrics</text><text x="341" y="997" class="small">Percentage CPU</text>
+  <path d="M545 978 H610" class="logical"/>
+  <rect x="610" y="940" width="220" height="76" rx="6" class="node"/>
+  <text x="626" y="970">cpu-high / VM_ID</text><text x="626" y="997" class="small">avg &gt; 80 / window 5m</text>
+  <path d="M830 978 H895" class="logical"/>
+  <rect x="895" y="940" width="220" height="76" rx="6" class="node"/>
+  <text x="911" y="970">ag-mail</text><text x="911" y="997" class="small">Email action</text>
+  <path d="M1115 978 H1180" class="logical"/>
+  <rect x="1180" y="940" width="220" height="76" rx="6" class="person"/>
+  <text x="1196" y="970">khoa / hộp thư</text><text x="1196" y="997" class="small">Chỉ nhận thông báo</text>
+  <text x="40" y="1047" class="small">Alert đánh giá mỗi 1 phút. Azure gửi email bằng dịch vụ của Azure; vm1 không gửi SMTP và email receiver không được cấp RBAC.</text>
+  <path d="M40 1066 H1400" class="divider"/>
+
+  <text x="40" y="1102" class="heading">06 / AUDIT: Administrative Activity log của cả subscription</text>
+  <rect x="40" y="1125" width="270" height="76" rx="6" class="network"/>
+  <text x="58" y="1155">ARM operations</text><text x="58" y="1182" class="small">Ví dụ: resource write / delete</text>
+  <path d="M310 1163 H400" class="logical"/>
+  <rect x="400" y="1125" width="280" height="76" rx="6" class="network"/>
+  <text x="418" y="1155">Subscription Activity log</text><text x="418" y="1182" class="small">Caller / operation / timestamp</text>
+  <path d="M680 1163 H770" class="logical"/>
+  <rect x="770" y="1125" width="270" height="76" rx="6" class="node"/>
+  <text x="788" y="1155">act-to-law</text><text x="788" y="1182" class="small">Administrative: enabled</text>
+  <path d="M1040 1163 H1130" class="logical"/>
+  <rect x="1130" y="1125" width="270" height="76" rx="6" class="node"/>
+  <text x="1148" y="1155">law-lab</text><text x="1148" y="1182" class="small">Table: AzureActivity</text>
+  <text x="40" y="1232" class="small">Chuyển tiếp Azure-to-Azure; không qua VM / AMA / DCR. Caller trong log là người thực hiện thao tác, không phải quyền được cấp.</text>
+  <path d="M40 1251 H1400" class="divider"/>
+
+  <text x="40" y="1287" class="heading">07 / QUERY: người chạy CLI truy vấn workspace bằng LAW_GUID</text>
+  <rect x="40" y="1310" width="270" height="76" rx="6" class="person"/>
+  <text x="58" y="1340">Bạn / Azure CLI</text><text x="58" y="1367" class="small">Entra token của principal az login</text>
+  <path d="M310 1348 H770" class="edge" marker-start="url(#arrow)"/>
+  <text x="540" y="1332" class="label">HTTPS 443 / KQL → · ← bảng kết quả</text>
+  <rect x="770" y="1310" width="270" height="76" rx="6" class="node"/>
+  <text x="788" y="1340">Log Analytics Query API</text><text x="788" y="1367" class="small">Workspace context: LAW_GUID</text>
+  <path d="M1040 1348 H1130" class="logical"/>
+  <rect x="1130" y="1310" width="270" height="76" rx="6" class="node"/>
+  <text x="1148" y="1340">law-lab / RBAC check</text><text x="1148" y="1367" class="small">Perf / Heartbeat / AzureActivity</text>
+  <text x="40" y="1417" class="small">Cần quyền query logs tại workspace, ví dụ Log Analytics Reader cho người chỉ đọc. MI của vm1 và email khoa không tự có quyền này.</text>
+  <path d="M40 1436 H1400" class="divider"/>
+
+  <text x="40" y="1472" class="heading">08 / SSH TÙY CHỌN: quản trị Linux, không được gọi trong script</text>
+  <rect x="40" y="1495" width="270" height="76" rx="6" class="person"/>
+  <text x="58" y="1525">Người giữ private SSH key</text><text x="58" y="1552" class="small">ssh azureuser@&lt;public-ip&gt;</text>
+  <path d="M310 1533 H400" class="edge"/><text x="355" y="1518" class="label">TCP 22</text>
+  <rect x="400" y="1495" width="280" height="76" rx="6" class="network"/>
+  <text x="418" y="1525">Public IP → NIC private IP</text><text x="418" y="1552" class="small">Inbound tới vm1</text>
+  <path d="M680 1533 H770" class="edge"/>
+  <rect x="770" y="1495" width="270" height="76" rx="6" class="network"/>
+  <text x="788" y="1525">NSG kiểm tra allow TCP/22</text><text x="788" y="1552" class="small">Bộ lọc, không phải router hop</text>
+  <path d="M1040 1533 H1130" class="edge"/>
+  <rect x="1130" y="1495" width="270" height="76" rx="6" class="host"/>
+  <text x="1148" y="1525">sshd / vm1</text><text x="1148" y="1552" class="small">azureuser → sudo trong OS</text>
+  <text x="40" y="1602" class="small">SSH key + NSG allow là điều kiện truy cập; không phải Azure RBAC. Nên giới hạn nguồn SSH về IP quản trị của bạn.</text>
+  <path d="M40 1621 H1400" class="divider"/>
+  <text x="40" y="1660" class="heading">RANH GIỚI CỦA SƠ ĐỒ</text>
+  <text x="40" y="1692" class="small">Không có NAT Gateway, firewall, VPN, private endpoint hay role assignment được khai báo; không suy ra chúng từ script.</text>
+  <text x="40" y="1720" class="small">VM không truyền -l: xác nhận region thực tế. DCR JSON southeastasia lệch CLI eastasia: cần thống nhất với workspace trước khi chạy.</text>
+  <text x="40" y="1748" class="small">Đây là kiến trúc dự kiến khi provision thành công, không phải kết quả kiểm tra tài nguyên hoặc quyền thực tế trên Azure.</text>
+</svg>

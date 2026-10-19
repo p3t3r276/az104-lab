@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 1440 1500" role="img" aria-labelledby="title desc">
+  <title id="title">Lab 20: Resource map và phạm vi quyền</title>
+  <desc id="desc">Quan hệ giữa VM, mạng, DCR, workspace, diagnostic setting, metric alert và action group; phân biệt quyền của principal CLI, azureuser, managed identity và email receiver.</desc>
+  <defs>
+    <style>
+      text { font-family: 'Segoe UI', sans-serif; font-size: 18px; fill: #24332F; }
+      .title { font-size: 32px; font-weight: 700; }
+      .heading { font-size: 21px; font-weight: 650; }
+      .small { font-size: 16px; fill: #52615B; }
+      .label { font-size: 16px; fill: #176C89; }
+      .boundary { fill: none; stroke: #89958E; stroke-width: 1.5; stroke-dasharray: 8 6; }
+      .network { fill: #EDF3F7; stroke: #397593; stroke-width: 1.5; }
+      .compute { fill: #E5F3EC; stroke: #29815D; stroke-width: 1.5; }
+      .monitor { fill: #EDF6F4; stroke: #22796F; stroke-width: 1.5; }
+      .edge { fill: none; stroke: #176C89; stroke-width: 2; marker-end: url(#arrow); }
+      .config { fill: none; stroke: #68746D; stroke-width: 2; stroke-dasharray: 7 5; marker-end: url(#arrow-gray); }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#176C89"/></marker>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#68746D"/></marker>
+  </defs>
+  <rect width="1440" height="1500" fill="#FCFAF4"/>
+  <text x="40" y="54" class="title">LAB 20 / RESOURCE MAP</text>
+  <text x="40" y="86">Quan hệ tài nguyên, cấu hình thu thập và phạm vi truy cập</text>
+  <rect x="32" y="112" width="1376" height="826" rx="8" class="boundary"/>
+  <text x="56" y="145" class="heading">Azure subscription</text>
+  <rect x="80" y="170" width="300" height="76" rx="6" class="network"/>
+  <text x="98" y="200" class="heading">Activity log</text>
+  <text x="98" y="226" class="small">Sự kiện quản trị toàn subscription</text>
+  <path d="M380 208 H510" class="edge"/>
+  <text x="397" y="195" class="label">lọc category</text>
+  <rect x="510" y="170" width="370" height="76" rx="6" class="monitor"/>
+  <text x="528" y="200" class="heading">act-to-law</text>
+  <text x="528" y="226" class="small">Diagnostic setting / Administrative</text>
+  <path d="M880 208 H1175 V350" class="edge"/>
+  <text x="951" y="194" class="label">export → AzureActivity</text>
+  <text x="80" y="270" class="small">act-to-law thuộc subscription, không thuộc RG; xóa RG không xóa setting này.</text>
+  <rect x="56" y="292" width="1328" height="626" rx="8" class="boundary"/>
+  <text x="80" y="326" class="heading">Resource group: rg-lab-d20 / LOC=eastasia</text>
+  <rect x="80" y="350" width="300" height="200" rx="6" class="network"/>
+  <text x="98" y="380" class="heading">VNet của vm1</text>
+  <rect x="98" y="399" width="264" height="133" rx="6" class="boundary"/>
+  <text x="114" y="427">Subnet mặc định</text>
+  <rect x="114" y="445" width="232" height="66" rx="6" class="network"/>
+  <text x="130" y="472" class="heading">NIC / private IP</text>
+  <text x="130" y="496" class="small">IP configuration trong subnet</text>
+  <path d="M346 478 H510" class="edge"/>
+  <text x="391" y="463" class="label">gắn vào</text>
+  <rect x="80" y="582" width="300" height="72" rx="6" class="network"/>
+  <text x="98" y="611" class="heading">Network security group</text>
+  <text x="98" y="637" class="small">Lọc traffic của NIC; SSH TCP/22</text>
+  <path d="M230 582 V511" class="config"/>
+  <rect x="80" y="688" width="300" height="72" rx="6" class="network"/>
+  <text x="98" y="717" class="heading">Public IP</text>
+  <text x="98" y="743" class="small">Liên kết IP configuration của NIC</text>
+  <path d="M80 724 H66 V478 H114" class="config"/>
+  <text x="80" y="805" class="small">Mạng / NIC / NSG / public IP / disk:</text>
+  <text x="80" y="831" class="small">CLI tạo nếu chưa được cung cấp.</text>
+  <text x="80" y="857" class="small">Tên và region thực tế: xem deployment.</text>
+  <rect x="510" y="350" width="370" height="202" rx="6" class="compute"/>
+  <text x="530" y="382" class="heading">vm1 / Ubuntu 22.04 / B1s</text>
+  <text x="530" y="419">Extension: AzureMonitorLinuxAgent</text>
+  <text x="530" y="451">Identity: system-assigned MI</text>
+  <text x="530" y="483">OS account: azureuser / SSH key</text>
+  <text x="530" y="526" class="small">VM Agent ≠ Azure Monitor Agent (AMA)</text>
+  <path d="M695 552 V590" class="config"/>
+  <rect x="510" y="590" width="370" height="76" rx="6" class="monitor"/>
+  <text x="530" y="620" class="heading">dcra-vm1</text>
+  <text x="530" y="646" class="small">Extension resource tại scope VM_ID</text>
+  <path d="M880 628 H1010" class="config"/>
+  <text x="905" y="613" class="small">rule-id</text>
+  <rect x="1010" y="350" width="330" height="154" rx="6" class="monitor"/>
+  <text x="1030" y="382" class="heading">law-lab / Log Analytics</text>
+  <text x="1030" y="414">Perf · Heartbeat · AzureActivity</text>
+  <text x="1030" y="447" class="small">LAW_ID: resource ID / cấu hình đích</text>
+  <text x="1030" y="478" class="small">LAW_GUID: customerId / query KQL</text>
+  <rect x="1010" y="590" width="330" height="92" rx="6" class="monitor"/>
+  <text x="1030" y="620" class="heading">dcr-perf / Data Collection Rule</text>
+  <text x="1030" y="647">Microsoft-Perf / CPU + RAM / 60s</text>
+  <text x="1030" y="671" class="small">destination: law → LAW_ID</text>
+  <path d="M1175 590 V504" class="config"/>
+  <text x="1190" y="550" class="small">tham chiếu đích</text>
+  <text x="1010" y="720" class="small">DCR là cấu hình, không phải network hop.</text>
+  <rect x="510" y="704" width="370" height="56" rx="6" class="compute"/>
+  <text x="530" y="739">Managed OS disk / gắn vào vm1</text>
+  <path d="M510 732 H490 V515 H510" class="config"/>
+  <rect x="510" y="800" width="370" height="88" rx="6" class="monitor"/>
+  <text x="530" y="829" class="heading">cpu-high / scope: VM_ID</text>
+  <text x="530" y="855">avg Percentage CPU &gt; 80 / 5 phút</text>
+  <text x="530" y="878" class="small">Đánh giá mỗi 1 phút / platform metric</text>
+  <path d="M880 844 H1010" class="edge"/>
+  <text x="904" y="830" class="label">kích hoạt</text>
+  <rect x="1010" y="800" width="330" height="88" rx="6" class="monitor"/>
+  <text x="1030" y="829" class="heading">ag-mail / Action group</text>
+  <text x="1030" y="855">Email receiver: khoa</text>
+  <text x="1030" y="878" class="small">Gửi tới &lt;email-cua-ban&gt;</text>
+  <text x="40" y="983" class="heading">DANH TÍNH → COMPONENT → QUYỀN</text>
+  <text x="40" y="1012" class="small">Script không có az role assignment create. Không thể suy ra role thực tế của người chạy CLI.</text>
+  <path d="M40 1030 H1400 M40 1074 H1400 M40 1160 H1400 M40 1238 H1400 M40 1316 H1400 M40 1394 H1400" stroke="#CBD3CC" fill="none"/>
+  <text x="56" y="1059" class="heading">Danh tính</text>
+  <text x="326" y="1059" class="heading">Component / scope</text>
+  <text x="714" y="1059" class="heading">Quyền / giới hạn</text>
+  <text x="56" y="1105">Bạn / principal của az login</text>
+  <text x="326" y="1105">Subscription + RG + tài nguyên lab</text>
+  <text x="714" y="1105">Cần quyền tạo / sửa / xóa, run-command và query logs.</text>
+  <text x="326" y="1135" class="small">act-to-law cần quyền tại subscription</text>
+  <text x="714" y="1135" class="small">Ví dụ đủ quyền: Contributor tại subscription; không bắt buộc Owner.</text>
+  <text x="56" y="1192">azureuser</text>
+  <text x="326" y="1192">Linux OS trên vm1</text>
+  <text x="714" y="1192">SSH bằng private key tương ứng; sudo trong VM.</text>
+  <text x="714" y="1221" class="small">Không được cấp Azure RBAC; không tự có quyền trên LAW / DCR.</text>
+  <text x="56" y="1270">System-assigned MI của vm1</text>
+  <text x="326" y="1270">AMA → Azure Monitor</text>
+  <text x="714" y="1270">AMA dùng identity để xác thực, nhận cấu hình và gửi dữ liệu.</text>
+  <text x="714" y="1299" class="small">Lab không gán role cho MI; không suy ra quyền đọc KQL / quản trị LAW.</text>
+  <text x="56" y="1348">khoa / email receiver</text>
+  <text x="326" y="1348">Thông báo từ ag-mail</text>
+  <text x="714" y="1348">Chỉ nhận email; tên receiver không phải Azure user / role.</text>
+  <text x="714" y="1377" class="small">Không có quyền trên vm1, law-lab, DCR hay action group từ cấu hình này.</text>
+  <text x="40" y="1430" class="small">Region: LAW dùng eastasia; JSON DCR ghi southeastasia trong khi CLI dùng -l eastasia. Cần thống nhất trước khi chạy.</text>
+  <path d="M40 1464 H100" class="edge"/><text x="112" y="1470" class="small">Luồng / liên kết</text>
+  <path d="M310 1464 H370" class="config"/><text x="382" y="1470" class="small">Cấu hình / gắn / tham chiếu; không phải đường đi của packet</text>
+</svg>
