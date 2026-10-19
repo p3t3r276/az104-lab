@@ -1504,7 +1504,7 @@ output saName string = sa.name
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d12
 MYIP=$(curl -s https://api.ipify.org)
 az group create -n $RG -l $LOC
