@@ -1334,7 +1334,7 @@ az group delete -n $RG --yes --no-wait
 
 **Tự kiểm tra:** Cần định tuyến `/api` và `/images` về 2 nhóm server khác nhau trong một region, chọn dịch vụ nào? Probe thấy vm1 lỗi thì LB làm gì?
 
-## Ngày 11 — VPN Gateway, Bastion, Network Watcher
+## Ngày 11 — VPN Gateway, Bastion, Network Watcher ✅
 
 **Mục tiêu:** kết nối máy bạn vào VNet bằng *Point-to-Site VPN*; vào VM không public IP qua *Bastion*; dùng các công cụ Network Watcher. Xóa gateway và Bastion ngay khi xong.
 
@@ -1348,6 +1348,9 @@ az group delete -n $RG --yes --no-wait
 4. Khi gateway xong: tạo certificate, cấu hình Point-to-Site, tải profile, kết nối và ping IP private của VM.
 5. Xóa Bastion và gateway.
 
+![lab 11 Resource map](img/lab_d11_resource_map_readable.svg)
+![Lab 11 access path](img/lab_d11_access_paths_readable.svg)
+![Lab 11 Network flow](img/lab_d11_network_flow_readable.svg)
 ```bash
 # Prep: variables and resource group
 LOC=eastasia
@@ -1356,7 +1359,7 @@ SA=stkhoalab$RANDOM
 az group create -n $RG -l $LOC
 
 # Step 1: VNet and the three subnets (names are mandatory)
-az network vnet create -g $RG -n vnet-hub --address-prefix 10.0.0.0/16 \
+az network vnet create -g $RG -l $LOC -n vnet-hub --address-prefix 10.0.0.0/16 \
   --subnet-name snet-app --subnet-prefixes 10.0.1.0/24
 az network vnet subnet create -g $RG --vnet-name vnet-hub -n GatewaySubnet \
   --address-prefixes 10.0.255.0/27
@@ -1364,27 +1367,34 @@ az network vnet subnet create -g $RG --vnet-name vnet-hub -n AzureBastionSubnet 
   --address-prefixes 10.0.254.0/26
 
 # Step 1: Start the VPN gateway now (if VpnGw1AZ is rejected in your region, try VpnGw1)
-az network public-ip create -g $RG -n pip-vpngw --sku Standard
-az network vnet-gateway create -g $RG -n vpngw --vnet vnet-hub \
+az network public-ip create -g $RG -l $LOC -n pip-vpngw --sku Standard
+az network vnet-gateway create -g $RG -l $LOC -n vpngw --vnet vnet-hub \
   --public-ip-addresses pip-vpngw --gateway-type Vpn --vpn-type RouteBased \
   --sku VpnGw1AZ --no-wait
 
 # Step 2: VM without a public IP
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2as_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-hub --subnet snet-app --public-ip-address ""
 
 # Step 2: Bastion Basic (connect in portal: VM > Connect > Bastion, SSH key ~/.ssh/id_rsa)
-az network public-ip create -g $RG -n pip-bas --sku Standard
-az network bastion create -g $RG -n bas --vnet-name vnet-hub \
+az network public-ip create -g $RG -l $LOC -n pip-bas --sku Standard
+az network bastion create -g $RG -l $LOC -n bas --vnet-name vnet-hub \
   --public-ip-address pip-bas --sku Basic
 
 # Step 3: Connection troubleshoot from vm1 to the internet
+## Install NetworkWatcherAgentLinux
+az vm extension set -g $RG --vm-name vm1 \
+  --name NetworkWatcherAgentLinux \
+  --publisher Microsoft.Azure.NetworkWatcher
+## Check
+az vm extension show -g $RG --vm-name vm1 \
+  -n NetworkWatcherAgentLinux --query provisioningState -o tsv
 az network watcher test-connectivity -g $RG --source-resource vm1 \
   --dest-address www.microsoft.com --dest-port 443
 
 # Step 3: Storage account for flow logs and packet capture
-az storage account create -g $RG -n $SA --sku Standard_LRS --kind StorageV2
+az storage account create -g $RG -l $LOC -n $SA --sku Standard_LRS --kind StorageV2
 
 # Step 3: VNet flow logs
 az network watcher flow-log create -g $RG -l $LOC -n fl-hub \
@@ -1411,9 +1421,14 @@ az network vnet-gateway update -g $RG -n vpngw \
   --address-prefixes 172.16.201.0/24 --client-protocol OpenVPN
 
 # Step 4: Upload the root cert public data (base64 DER, no headers)
-ROOT_DATA=$(openssl x509 -in p2sroot.crt -outform der | base64 | tr -d '\n')
+openssl x509 -in p2sroot.crt -outform der | base64 | tr -d '\n' > p2sroot.b64
+
 az network vnet-gateway root-cert create -g $RG --gateway-name vpngw \
-  -n P2SRoot --public-cert-data "$ROOT_DATA"
+  -n P2SRoot --public-cert-data p2sroot.b64
+
+## Check if cert is in gateway
+az network vnet-gateway show -g $RG -n vpngw \
+  --query "vpnClientConfiguration.vpnClientRootCertificates[].name" -o tsv
 
 # Step 4: Download the client profile (zip URL)
 az network vnet-gateway vpn-client generate -g $RG -n vpngw -o tsv
