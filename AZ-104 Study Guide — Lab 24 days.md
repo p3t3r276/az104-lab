@@ -668,7 +668,7 @@ az group delete -n $RG --yes --no-wait
 
 ## Ngày 6 — Peering, UDR, NVA
 
-**Mục tiêu:** chứng minh *peering* không bắc cầu, rồi dùng *UDR* qua một VM làm *NVA* để nối 2 spoke.
+**Mục tiêu:** chứng minh *peering* không bắc cầu, rồi dùng *UDR (User-Defined Routes)* qua một VM làm *NVA (Network Virtual Appliance)* để nối 2 spoke.
 
 **Dùng lại:** Ngày 4 (tạo VM, run-command), Ngày 5 (VNet, subnet).
 
@@ -708,6 +708,8 @@ az vm create -g $RG -l $LOC -n vm-nva --image Ubuntu2204 --size Standard_D2as_v6
 az vm create -g $RG -l $LOC -n vm-spoke1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-spoke1 --subnet default --public-ip-address ""
+
+# Create VM in another location due to limit
 az vm create -g $RG -l japanwest -n vm-spoke2 --image Ubuntu2204 --size Standard_DC1ds_v3 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-spoke2 --subnet default --public-ip-address ""
