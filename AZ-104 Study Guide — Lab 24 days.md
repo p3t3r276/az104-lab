@@ -1673,11 +1673,14 @@ resource spokeToHub 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@20
 3. Bài tự dựng 45 phút, không xem guide: VNet 2 subnet, NSG chỉ cho SSH từ IP bạn, VM không public IP, storage bật firewall Deny, private endpoint + DNS, VM đọc được blob qua SAS. So với đáp án bên dưới.
 4. Viết 1 trang ghi nhớ: bảng cân bằng tải (Ngày 10), Network Watcher (Ngày 11), SAS (Ngày 8), redundancy (Ngày 7), tên subnet bắt buộc.
 
+![Lab 13 reousrce map](img/lab_d13_resource_map_network_flow.svg)
+![Roles and permissions](img/lab_d13_permission.png)
+
 Đáp án tham khảo bài tự dựng:
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d13
 SA=stkhoalab$RANDOM
 ME=$(az ad signed-in-user show --query id -o tsv)
@@ -1687,13 +1690,13 @@ EXP=$(date -u -d "+1 day" '+%Y-%m-%dT%H:%MZ')      # Linux
 az group create -n $RG -l $LOC
 
 # VNet with app and private-endpoint subnets
-az network vnet create -g $RG -n vnet-lab --address-prefix 10.0.0.0/16 \
+az network vnet create -g $RG -l $LOC -n vnet-lab --address-prefix 10.0.0.0/16 \
   --subnet-name snet-app --subnet-prefixes 10.0.1.0/24
 az network vnet subnet create -g $RG --vnet-name vnet-lab -n snet-pe \
   --address-prefixes 10.0.2.0/24
 
 # NSG: SSH only from your IP, on snet-app
-az network nsg create -g $RG -n nsg-app
+az network nsg create -g $RG -l $LOC -n nsg-app
 az network nsg rule create -g $RG --nsg-name nsg-app -n allow-ssh-myip \
   --priority 100 --direction Inbound --access Allow --protocol Tcp \
   --destination-port-ranges 22 --source-address-prefixes $MYIP
@@ -1701,12 +1704,12 @@ az network vnet subnet update -g $RG --vnet-name vnet-lab -n snet-app \
   --network-security-group nsg-app
 
 # VM without public IP
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-lab --subnet snet-app --nsg "" --public-ip-address ""
 
 # Storage, data role, blob, SAS, firewall Deny
-az storage account create -g $RG -n $SA --sku Standard_LRS --kind StorageV2 \
+az storage account create -g $RG -l $LOC -n $SA --sku Standard_LRS --kind StorageV2 \
   --allow-blob-public-access false
 SA_ID=$(az storage account show -g $RG -n $SA --query id -o tsv)
 az role assignment create --assignee $ME --role "Storage Blob Data Contributor" --scope $SA_ID
@@ -1759,14 +1762,14 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d14
 SUB=$(az account show --query id -o tsv)
 SCOPE=/subscriptions/$SUB/resourceGroups/$RG
 az group create -n $RG -l $LOC --tags env=lab
 
 # Step 1: A resource created BEFORE any policy (no tags)
-az network vnet create -g $RG -n vnet-old --address-prefix 10.0.0.0/16
+az network vnet create -g $RG -l $LOC -n vnet-old --address-prefix 10.0.0.0/16
 
 # Step 2: Find the built-in Allowed locations policy
 POLICY=$(az policy definition list \
@@ -1774,12 +1777,12 @@ POLICY=$(az policy definition list \
 
 # Step 2: Assign it at resource group scope
 az policy assignment create --name allowed-locs --scope $SCOPE --policy $POLICY \
-  --params '{"listOfAllowedLocations":{"value":["southeastasia"]}}'
+  --params '{"listOfAllowedLocations":{"value":["eastasia"]}}'
 
 # Step 2 (wait ~5 min): East US is denied - RequestDisallowedByPolicy
 az storage account create -g $RG -n stdeny$RANDOM -l eastus --sku Standard_LRS
 
-# Step 2: Southeast Asia is allowed
+# Step 2: East Asia is allowed
 az storage account create -g $RG -n stok$RANDOM -l $LOC --sku Standard_LRS
 
 # Step 3: Find the built-in inherit-tag policy
@@ -1873,14 +1876,14 @@ az policy set-definition delete -n lab-storage-baseline
 
 ```bash
 # Prep: variables and resource groups
-LOC=southeastasia
+LOC=eastasia
 SUB=$(az account show --query id -o tsv)
 SA=stkhoalab$RANDOM
 az group create -n rg-lab-d15a -l $LOC --tags env=lab
 az group create -n rg-lab-d15b -l $LOC --tags env=lab
 
 # Step 1: A VM, a storage account and a standalone VNet in group A
-az vm create -g rg-lab-d15a -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g rg-lab-d15a -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys
 az storage account create -g rg-lab-d15a -n $SA --sku Standard_LRS --kind StorageV2
 az network vnet create -g rg-lab-d15a -n vnet-move --address-prefix 10.50.0.0/16
@@ -1976,14 +1979,14 @@ az group delete -n rg-lab-d15b --yes --no-wait
 
 1. Làm khoảng 40 câu practice của domain Identity & Governance.
 2. Ghi từng câu sai: không biết, hay đọc sót ràng buộc.
-3. Bài tự dựng 45 phút, không xem guide: tạo user `lab-auditor` và group `Auditors`; cho group quyền Reader ở một resource group; chặn mọi region ngoài Southeast Asia ở resource group đó; khóa CanNotDelete; gắn tag. Đăng nhập bằng `lab-auditor` để kiểm chứng. So với đáp án bên dưới.
+3. Bài tự dựng 45 phút, không xem guide: tạo user `lab-auditor` và group `Auditors`; cho group quyền Reader ở một resource group; chặn mọi region ngoài East Asia ở resource group đó; khóa CanNotDelete; gắn tag. Đăng nhập bằng `lab-auditor` để kiểm chứng. So với đáp án bên dưới.
 4. Viết 1 trang ghi nhớ: bảng role (Ngày 3), bảng effect (Ngày 14), bảng Entra ID Free (Ngày 2), các loại lock (Ngày 15).
 
 Đáp án tham khảo bài tự dựng:
 
 ```bash
 # Prep: variables
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d16
 SUB=$(az account show --query id -o tsv)
 SCOPE=/subscriptions/$SUB/resourceGroups/$RG
@@ -2051,7 +2054,7 @@ az ad group delete --group Auditors
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d17
 az group create -n $RG -l $LOC
 
@@ -2159,9 +2162,11 @@ az group delete -n $RG --yes --no-wait
 5. Scale out thủ công lên 2, sau đó cấu hình autoscale cho plan.
 6. Backup app vào blob container bằng SAS URL.
 
+![Lab day 18](img/lab_d18_appservice_resource_map.svg)
+
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d18
 APP=khoalab-api-$RANDOM
 SA=stkhoalab$RANDOM
@@ -2257,9 +2262,11 @@ az group delete -n $RG --yes --no-wait
 3. Chạy image bằng ACI với restart policy OnFailure; xem log; gọi API.
 4. Deploy cùng image lên Container Apps có ingress external; đặt scale 0–3 theo HTTP.
 
+![Lab Day 19 Resource](img/lab_d19_acr_aci_containerapps_map.svg)
+
 ```bash
 # Prep: variables, providers and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d19
 ACR=khoalabacr$RANDOM
 az provider register --namespace Microsoft.ContainerInstance
@@ -2361,9 +2368,12 @@ az group delete -n $RG --yes --no-wait
 5. Tạo action group email và metric alert CPU > 80%; tạo tải CPU để alert bắn.
 6. Chạy 4 câu KQL từ CLI.
 
+![Lab 20 Resource map](img/labd20_monitor_lab_resource_map.svg)
+![Lab 20 network flow](img/labd20_monitor_lab_network_flow.svg)
+
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d20
 az group create -n $RG -l $LOC
 
@@ -2479,7 +2489,7 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d21
 SA=stkhoalab$RANDOM
 RETAIN=$(date -u -d "+30 days" '+%d-%m-%Y')      # Linux
