@@ -1463,7 +1463,7 @@ az group delete -n $RG --yes --no-wait
 
 **Tự kiểm tra:** Admin cần RDP vào VM mà không mở port 3389 ra internet và không gán public IP, chọn gì? P2S và S2S khác nhau ở thành phần nào?
 
-## Ngày 12 — ARM/Bicep, viết hub-spoke
+## Ngày 12 — ARM/Bicep, viết hub-spoke ✅
 
 **Mục tiêu:** đọc, sửa, deploy ARM/Bicep; hiểu mode Incremental và Complete; tự viết hub-spoke của Ngày 6 bằng Bicep trong 60 phút.
 
@@ -1475,6 +1475,10 @@ az group delete -n $RG --yes --no-wait
 2. Tạo thêm 1 public IP bằng CLI, deploy lại mode Complete để thấy nó bị xóa.
 3. Build Bicep ra ARM JSON và đọc cấu trúc; export template từ resource group, decompile ngược về Bicep.
 4. Tự viết `hub-spoke.bicep` (không xem đáp án), what-if, deploy, kiểm tra peering và route.
+
+---
+![Lab 12 Resource map](img/lab_d12_resource_map_cream.svg)
+![Lab 12 network flow](img/lab_d12_network_flow.svg)
 
 `main.bicep`:
 
@@ -1503,9 +1507,6 @@ resource sa 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 
 output saName string = sa.name
 ```
----
-![Lab 12 Resource map](img/lab_d12_resource_map_cream.svg)
-![Lab 12 network flow](img/lab_d12_network_flow.svg)
 
 
 ```bash
@@ -1529,7 +1530,7 @@ az network public-ip create -g $RG -n pip-extra --sku Standard
 
 # Step 2: Complete mode deletes it
 az deployment group create -g $RG -f main.bicep -p prefix=lab --mode Complete
-az resource list -g $RG --query "[].name" -o tsv
+az resource list -g $RG --query "[].name" -o tsv # -> return nothing
 
 # Step 3: Build Bicep to ARM JSON and read it
 az bicep build --file main.bicep
@@ -1579,7 +1580,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
           sourceAddressPrefix: myIp
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
-  s        destinationPortRange: '22'
+          destinationPortRange: '22'
         }
       }
     ]
