@@ -1060,7 +1060,7 @@ az group delete -n $RG --yes --no-wait
 
 **Tự kiểm tra:** Đã phát SAS cho đối tác, cần thu hồi ngay mà không ảnh hưởng ứng dụng khác dùng account key, làm cách nào?
 
-## Ngày 9 — DNS, service endpoint, private endpoint
+## Ngày 9 — DNS, service endpoint, private endpoint ✅
 
 **Mục tiêu:** phân biệt public/private DNS; cho VM trong VNet truy cập storage đã bật firewall bằng *service endpoint* rồi bằng *private endpoint*.
 
@@ -1102,7 +1102,7 @@ NS1=$(az network dns zone show -g $RG -n $ZONE --query "nameServers[0]" -o tsv)
 nslookup www.$ZONE $NS1
 
 # Step 2: VNet with an app subnet and a private-endpoint subnet
-az network vnet create -g $RG -n vnet-hub --address-prefix 10.0.0.0/16 \
+az network vnet create -g $RG -l $LOC -n vnet-hub --address-prefix 10.0.0.0/16 \
   --subnet-name snet-app --subnet-prefixes 10.0.1.0/24
 az network vnet subnet create -g $RG --vnet-name vnet-hub -n snet-pe \
   --address-prefixes 10.0.2.0/24
@@ -1116,7 +1116,9 @@ az network private-dns link vnet create -g $RG -z corp.internal -n link-hub \
 az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2as_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-hub --subnet snet-app
-az network private-dns record-set a list -g $RG -z corp.internal -o table
+az network private-dns record-set a list -g $RG -z corp.internal \
+  --query "[].{Name:name, TTL:ttl, IPs:join(', ', aRecords[].ipv4Address)}" \
+  -o table
 
 # Step 2: Resolve it from inside the VNet
 az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript \
@@ -1153,7 +1155,7 @@ az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript \
 curl "$URL?$SAS"
 
 # Step 5: Private endpoint for the blob service
-az network private-endpoint create -g $RG -n pe-blob --vnet-name vnet-hub \
+az network private-endpoint create -g $RG -l $LOC -n pe-blob --vnet-name vnet-hub \
   --subnet snet-pe --private-connection-resource-id $SA_ID \
   --group-id blob --connection-name pe-blob-conn
 
