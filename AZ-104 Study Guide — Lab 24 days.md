@@ -1663,7 +1663,7 @@ resource spokeToHub 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@20
 
 **Tự kiểm tra:** Deploy mode Complete vào resource group có 3 resource, template chỉ khai báo 2, kết quả là gì? Mở `hub-spoke.json` sau khi build: peering spoke-to-hub có những `dependsOn` nào?
 
-## Ngày 13 — Ôn Networking + Storage
+## Ngày 13 — Ôn Networking + Storage ✅
 
 **Mục tiêu:** khóa hai domain có nhiều câu hotspot nhất bằng practice và một bài tự dựng có bấm giờ.
 
@@ -1707,7 +1707,7 @@ az network vnet subnet update -g $RG --vnet-name vnet-lab -n snet-app \
   --network-security-group nsg-app
 
 # VM without public IP
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys \
   --vnet-name vnet-lab --subnet snet-app --nsg "" --public-ip-address ""
 
@@ -1724,7 +1724,7 @@ SAS=$(az storage container generate-sas --account-name $SA -n data \
 az storage account update -g $RG -n $SA --default-action Deny
 
 # Private endpoint + DNS
-az network private-endpoint create -g $RG -n pe-blob --vnet-name vnet-lab \
+az network private-endpoint create -g $RG -l $LOC -n pe-blob --vnet-name vnet-lab \
   --subnet snet-pe --private-connection-resource-id $SA_ID \
   --group-id blob --connection-name pe-blob-conn
 az network private-dns zone create -g $RG -n privatelink.blob.core.windows.net
