@@ -65,7 +65,7 @@ az login --tenant <tenant-id>
 az account set --subscription "<subscription-id>"
 
 # Step 2: Set default location (no experimental warning like az config)
-az configure --defaults location=southeastasia
+az configure --defaults location=eastasia
 
 # Step 2: Install Bicep CLI
 az bicep install
@@ -75,7 +75,7 @@ ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
 
 # Step 3: Create a resource group with a tag
 RG=rg-lab-d01
-az group create -n $RG -l southeastasia --tags env=lab
+az group create -n $RG -l eastasia --tags env=lab
 
 # Step 3: List and inspect resource groups
 az group list -o table
@@ -328,8 +328,8 @@ DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains \
   --query "value[?isDefault].id" -o tsv)
 
 # Step 1: Create two resource groups
-az group create -n rg-lab-d03a -l southeastasia
-az group create -n rg-lab-d03b -l southeastasia
+az group create -n rg-lab-d03a -l eastasia
+az group create -n rg-lab-d03b -l eastasia
 
 # Step 1: Assign Reader at resource group scope
 az role assignment create --assignee lab-reader@$DOMAIN --role "Reader" \
@@ -451,8 +451,7 @@ az group delete -n rg-lab-d03b --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
-# Vm thì nên ở eastasia
+LOC=eastasia
 RG=rg-lab-d04
 SUB=$(az account show --query id -o tsv)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains \
@@ -564,7 +563,7 @@ az group delete -n $RG --yes --no-wait
 
 ```bash
 # Prep: variables and resource group
-LOC=southeastasia
+LOC=eastasia
 RG=rg-lab-d05
 MYIP=$(curl -s https://api.ipify.org)
 az group create -n $RG -l $LOC
@@ -2013,7 +2012,7 @@ az role assignment create --assignee $(az ad group show --group Auditors --query
 # Allowed locations at the resource group
 POLICY=$(az policy definition list --query "[?displayName=='Allowed locations'].name" -o tsv)
 az policy assignment create --name allowed-locs --scope $SCOPE --policy $POLICY \
-  --params '{"listOfAllowedLocations":{"value":["southeastasia"]}}'
+  --params '{"listOfAllowedLocations":{"value":["eastasia"]}}'
 
 # CanNotDelete lock
 az lock create --name no-delete --lock-type CanNotDelete --resource-group $RG
@@ -2399,7 +2398,7 @@ File `dcr.json` (thay `<LAW_ID>` bằng giá trị của `$LAW_ID`):
 
 ```json
 {
-  "location": "southeastasia",
+  "location": "eastasia",
   "properties": {
     "dataSources": {
       "performanceCounters": [{
