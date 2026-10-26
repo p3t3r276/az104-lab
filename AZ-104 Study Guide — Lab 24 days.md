@@ -814,7 +814,7 @@ ME=$(az ad signed-in-user show --query id -o tsv)
 az group create -n $RG -l $LOC
 
 # Step 1: Create a GPv2 LRS storage account
-az storage account create -g $RG -n $SA --sku Standard_LRS --kind StorageV2 \
+az storage account create -g $RG -l $LOC -n $SA --sku Standard_LRS --kind StorageV2 \
   --access-tier Hot --min-tls-version TLS1_2 --allow-blob-public-access false
 
 # Step 1: Change redundancy to GRS
@@ -1007,7 +1007,7 @@ az storage share-rm create -g $RG --storage-account $SA -n share1 --quota 100
 az storage file upload --account-name $SA --share-name share1 --source hello.txt --account-key $KEY
 
 # Step 5: Create a Linux VM and mount the share over SMB 3.1.1 (port 445)
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_D2as_v6 \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2as_v6 \
   --admin-username azureuser --generate-ssh-keys
 az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript --scripts \
   "apt-get -y install cifs-utils >/dev/null && mkdir -p /mnt/share1 && mount -t cifs //$SA.file.core.windows.net/share1 /mnt/share1 -o username=$SA,password=$KEY,vers=3.1.1,serverino && ls -l /mnt/share1"
@@ -1526,7 +1526,7 @@ az deployment group create -g $RG -f main.bicep -p prefix=lab --mode Incremental
 az deployment group show -g $RG -n main --query properties.outputs
 
 # Step 2: Add a resource that is NOT in the template
-az network public-ip create -g $RG -n pip-extra --sku Standard
+az network public-ip create -g $RG -l $LOC -n pip-extra --sku Standard
 
 # Step 2: Complete mode deletes it
 az deployment group create -g $RG -f main.bicep -p prefix=lab --mode Complete
@@ -1804,7 +1804,7 @@ az role assignment create --assignee-object-id $PRINCIPAL \
   --assignee-principal-type ServicePrincipal --role "Tag Contributor" --scope $SCOPE
 
 # Step 3 (wait ~5 min): a new resource gets the tag automatically
-az network vnet create -g $RG -n vnet-new --address-prefix 10.1.0.0/16
+az network vnet create -g $RG -l $LOC -n vnet-new --address-prefix 10.1.0.0/16
 az network vnet show -g $RG -n vnet-new --query tags
 
 # Step 3: Force a compliance scan and list states
@@ -1886,10 +1886,10 @@ az group create -n rg-lab-d15a -l $LOC --tags env=lab
 az group create -n rg-lab-d15b -l $LOC --tags env=lab
 
 # Step 1: A VM, a storage account and a standalone VNet in group A
-az vm create -g rg-lab-d15a -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
+az vm create -g rg-lab-d15a -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys
-az storage account create -g rg-lab-d15a -n $SA --sku Standard_LRS --kind StorageV2
-az network vnet create -g rg-lab-d15a -n vnet-move --address-prefix 10.50.0.0/16
+az storage account create -g rg-lab-d15a -l $LOC -n $SA --sku Standard_LRS --kind StorageV2
+az network vnet create -g rg-lab-d15a -l $LOC -n vnet-move --address-prefix 10.50.0.0/16
 
 # Step 2: CanNotDelete lock on group A
 az lock create --name no-delete --lock-type CanNotDelete --resource-group rg-lab-d15a
@@ -2065,12 +2065,12 @@ az group create -n $RG -l $LOC
 az vm list-usage -l $LOC --query "[?contains(name.value,'cores')].{name:name.localizedValue, used:currentValue, limit:limit}" -o table
 
 # Step 2: Availability set
-az vm availability-set create -g $RG -n avset1 \
+az vm availability-set create -g $RG -l $LOC -n avset1 \
   --platform-fault-domain-count 2 --platform-update-domain-count 5
 
 # Step 2: Two VMs in the set
 for VM in vm1 vm2; do
-  az vm create -g $RG -n $VM --image Ubuntu2204 --size Standard_B1s \
+  az vm create -g $RG -l $LOC -n $VM --image Ubuntu2204 --size Standard_B1s \
     --admin-username azureuser --generate-ssh-keys \
     --availability-set avset1 --public-ip-address ""
 done
@@ -2082,7 +2082,7 @@ for VM in vm1 vm2; do
 done
 
 # Step 3: A VM created outside the set
-az vm create -g $RG -n vm3 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm3 --image Ubuntu2204 --size Standard_B1s \
   --admin-username azureuser --generate-ssh-keys --public-ip-address ""
 
 # Step 3: Try to put it into the set - fails (must recreate the VM)
@@ -2097,15 +2097,15 @@ az vm list-skus -l $LOC --size Standard_B1s --zone \
   --query "[].locationInfo[].zones" -o tsv
 
 # Step 4: One VM per zone, then delete them
-az vm create -g $RG -n vm-z1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm-z1 --image Ubuntu2204 --size Standard_B1s \
   --admin-username azureuser --generate-ssh-keys --zone 1 --public-ip-address ""
-az vm create -g $RG -n vm-z2 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm-z2 --image Ubuntu2204 --size Standard_B1s \
   --admin-username azureuser --generate-ssh-keys --zone 2 --public-ip-address ""
 az vm list -g $RG --query "[].{name:name, zone:zones[0]}" -o table
 az vm delete -g $RG --ids $(az vm list -g $RG --query "[].id" -o tsv) --yes
 
 # Step 5: VMSS with 2 instances (creates its own VNet and load balancer)
-az vmss create -g $RG -n vmss1 --image Ubuntu2204 --vm-sku Standard_B1s \
+az vmss create -g $RG -l $LOC -n vmss1 --image Ubuntu2204 --vm-sku Standard_B1s \
   --instance-count 2 --admin-username azureuser --generate-ssh-keys \
   --orchestration-mode Uniform --upgrade-policy-mode Automatic
 az vmss list-instances -g $RG -n vmss1 -o table
@@ -2183,7 +2183,7 @@ dotnet publish LabApi -c Release -o publish
 (cd publish && zip -r ../app.zip .)
 
 # Step 2: Basic Linux plan and web app
-az appservice plan create -g $RG -n plan1 --sku B1 --is-linux
+az appservice plan create -g $RG -l $LOC -n plan1 --sku B1 --is-linux
 az webapp create -g $RG -p plan1 -n $APP --runtime "DOTNETCORE:8.0"
 
 # Step 2: Deploy and call the API
@@ -2221,7 +2221,7 @@ az monitor autoscale rule create -g $RG --autoscale-name as-plan1 \
   --condition "CpuPercentage < 30 avg 5m" --scale in 1
 
 # Step 6: Storage container and a write SAS for backups
-az storage account create -g $RG -n $SA --sku Standard_LRS --kind StorageV2
+az storage account create -g $RG -l $LOC -n $SA --sku Standard_LRS --kind StorageV2
 KEY=$(az storage account keys list -g $RG -n $SA --query "[0].value" -o tsv)
 az storage container create --account-name $SA -n backups --account-key $KEY
 BK_SAS=$(az storage container generate-sas --account-name $SA -n backups \
@@ -2294,7 +2294,7 @@ ENTRYPOINT ["dotnet", "LabApi.dll"]
 EOF
 
 # Step 2: Create the registry with the admin user enabled
-az acr create -g $RG -n $ACR --sku Basic --admin-enabled true
+az acr create -g $RG -l $LOC -n $ACR --sku Basic --admin-enabled true
 
 # Step 2: Build in the cloud with ACR Tasks
 az acr build -r $ACR -t labapi:v1 LabApi
@@ -2312,7 +2312,7 @@ ACR_USER=$(az acr credential show -n $ACR --query username -o tsv)
 ACR_PASS=$(az acr credential show -n $ACR --query "passwords[0].value" -o tsv)
 
 # Step 3: Run the image on ACI
-az container create -g $RG -n aci-api --image $ACR.azurecr.io/labapi:v1 \
+az container create -g $RG -l $LOC -n aci-api --image $ACR.azurecr.io/labapi:v1 \
   --os-type Linux --cpu 1 --memory 1.5 --ports 8080 --ip-address Public \
   --dns-name-label aci-$ACR \
   --registry-login-server $ACR.azurecr.io \
@@ -2386,7 +2386,7 @@ LAW_ID=$(az monitor log-analytics workspace show -g $RG -n law-lab --query id -o
 LAW_GUID=$(az monitor log-analytics workspace show -g $RG -n law-lab --query customerId -o tsv)
 
 # Step 2: VM with a system-assigned managed identity
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_B1s \
   --admin-username azureuser --generate-ssh-keys --assign-identity
 VM_ID=$(az vm show -g $RG -n vm1 --query id -o tsv)
 
@@ -2500,7 +2500,7 @@ RETAIN=$(date -u -d "+30 days" '+%d-%m-%Y')      # Linux
 az group create -n $RG -l $LOC
 
 # Step 1: VM and an important file
-az vm create -g $RG -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_B1s \
   --admin-username azureuser --generate-ssh-keys
 az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript \
   --scripts "echo 'quan trong' > /home/azureuser/important.txt"
@@ -2546,7 +2546,7 @@ az backup restore files unmount-rp -g $RG --vault-name rsv-lab \
   --container-name vm1 --item-name vm1 --rp-name $RP
 
 # Step 5: Staging storage account for the restore
-az storage account create -g $RG -n $SA --sku Standard_LRS --kind StorageV2
+az storage account create -g $RG -l $LOC -n $SA --sku Standard_LRS --kind StorageV2
 
 # Step 5: Restore as a new VM in the same VNet/subnet (names from az vm create defaults)
 az backup restore restore-disks -g $RG --vault-name rsv-lab \
