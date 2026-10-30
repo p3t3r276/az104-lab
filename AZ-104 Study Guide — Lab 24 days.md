@@ -37,7 +37,7 @@ Cách dùng guide: mỗi ngày gồm mục tiêu, các bước lab, lệnh CLI/J
 | 23 | Nước rút | Lab lại chủ đề yếu + mock exam 2 | tất cả |
 | 24 | Nước rút | Ôn bảng tổng hợp, dọn subscription | tất cả |
 
-## Ngày 1 — Setup, resource group, chi phí
+## Ngày 1 — Setup, resource group, chi phí ✅
 
 **Mục tiêu:** CLI trỏ đúng subscription, hiểu *resource group*, có budget alert, có script dọn dẹp, có 2 user test cho các ngày sau.
 
