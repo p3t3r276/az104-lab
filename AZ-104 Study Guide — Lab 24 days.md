@@ -1749,7 +1749,7 @@ az group delete -n $RG --yes --no-wait
 - [ ] Thu hồi được từng loại SAS
 - [ ] Chọn đúng dịch vụ cân bằng tải theo tầng và phạm vi
 
-## Ngày 14 — Azure Policy
+## Ngày 14 — Azure Policy ✅
 
 **Mục tiêu:** phân biệt các effect; thấy *deny* chặn lúc tạo; dùng *managed identity* và *remediation* để sửa resource cũ; gom policy thành *initiative*.
 
@@ -1758,7 +1758,7 @@ az group delete -n $RG --yes --no-wait
 **Các bước lab:**
 
 1. Tạo resource group có tag `env=lab`; tạo `vnet-old` **trước** khi gán policy (không có tag).
-2. Gán *Allowed locations* (chỉ Southeast Asia) ở resource group; thử tạo storage ở East US (bị chặn), ở Southeast Asia (được).
+2. Gán *Allowed locations* (chỉ East Asia) ở resource group; thử tạo storage ở East US (bị chặn), ở East Asia (được).
 3. Gán *Inherit a tag from the resource group* (effect modify) kèm managed identity; gán role cho identity; tạo `vnet-new` → tự có tag; `vnet-old` non-compliant → chạy remediation.
 4. Gom 2 policy audit về storage thành initiative, gán và xem compliance.
 
@@ -1774,8 +1774,7 @@ az group create -n $RG -l $LOC --tags env=lab
 az network vnet create -g $RG -l $LOC -n vnet-old --address-prefix 10.0.0.0/16
 
 # Step 2: Find the built-in Allowed locations policy
-POLICY=$(az policy definition list \
-  --query "[?displayName=='Allowed locations'].name" -o tsv)
+POLICY=$(az policy definition list --query "[?displayName=='Allowed locations'].name" -o tsv)
 
 # Step 2: Assign it at resource group scope
 az policy assignment create --name allowed-locs --scope $SCOPE --policy $POLICY \
@@ -1788,13 +1787,10 @@ az storage account create -g $RG -n stdeny$RANDOM -l eastus --sku Standard_LRS
 az storage account create -g $RG -n stok$RANDOM -l $LOC --sku Standard_LRS
 
 # Step 3: Find the built-in inherit-tag policy
-INHERIT=$(az policy definition list \
-  --query "[?displayName=='Inherit a tag from the resource group'].name" -o tsv)
+INHERIT=$(az policy definition list --query "[?displayName=='Inherit a tag from the resource group'].name" -o tsv)
 
 # Step 3: Assign it with a system-assigned managed identity
-az policy assignment create --name inherit-env-tag --scope $SCOPE --policy $INHERIT \
-  --params '{"tagName":{"value":"env"}}' \
-  --mi-system-assigned --location $LOC
+az policy assignment create --name inherit-env-tag --scope $SCOPE --policy $INHERIT --params '{"tagName":{"value":"env"}}' --mi-system-assigned --location $LOC
 
 # Step 3: The identity needs Tag Contributor (portal does this for you, CLI does not)
 PRINCIPAL=$(az policy assignment show --name inherit-env-tag --scope $SCOPE \
