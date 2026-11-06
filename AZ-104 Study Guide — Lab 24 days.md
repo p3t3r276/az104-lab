@@ -1930,6 +1930,7 @@ az tag update --resource-id $SA_ID --operation Delete --tags owner=khoa
 
 # Step 5: Find resources by tag
 az tag update --resource-id $SA_ID --operation Merge --tags env=lab
+az configure --defaults location="" # if --location error
 az resource list --tag env=lab --query "[].{name:name, rg:resourceGroup}" -o table
 
 # Step 6: Create a management group and move the subscription under it
