@@ -1968,7 +1968,7 @@ az group delete -n rg-lab-d15b --yes --no-wait
 
 **Tự kiểm tra:** Move VM sang resource group khác có đổi region không? Muốn áp policy cho nhiều subscription cùng lúc thì gán ở đâu? Lock nào chặn cả việc stop VM?
 
-## Ngày 16 — Ôn Identity & Governance
+## Ngày 16 — Ôn Identity & Governance ✅
 
 **Mục tiêu:** khóa domain 20–25% này bằng practice và một bài tự dựng có bấm giờ.
 
@@ -2003,8 +2003,11 @@ az ad group member add --group Auditors \
   --member-id $(az ad user show --id lab-auditor@$DOMAIN --query id -o tsv)
 
 # Reader for the group (not the user) on the resource group
-az role assignment create --assignee $(az ad group show --group Auditors --query id -o tsv) \
-  --assignee-principal-type Group --role "Reader" --scope $SCOPE
+az role assignment create \
+  --assignee-object-id $(az ad group show --group Auditors --query id -o tsv) \
+  --assignee-principal-type Group \
+  --role "Reader" \
+  --scope $SCOPE
 
 # Allowed locations at the resource group
 POLICY=$(az policy definition list --query "[?displayName=='Allowed locations'].name" -o tsv)
