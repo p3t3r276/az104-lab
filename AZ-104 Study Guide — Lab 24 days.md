@@ -2039,7 +2039,7 @@ az ad group delete --group Auditors
 - [ ] Biết ReadOnly lock chặn những thao tác nào
 - [ ] Biết tính năng Entra nào cần P1, tính năng nào cần P2
 
-## Ngày 17 — Availability set, zone, VMSS
+## Ngày 17 — Availability set, zone, VMSS ✅
 
 **Mục tiêu:** đặt VM vào *availability set* và *availability zone*; tạo *VMSS* có autoscale theo CPU và thấy nó scale out.
 
@@ -2069,7 +2069,7 @@ az vm availability-set create -g $RG -l $LOC -n avset1 \
 
 # Step 2: Two VMs in the set
 for VM in vm1 vm2; do
-  az vm create -g $RG -l $LOC -n $VM --image Ubuntu2204 --size Standard_B1s \
+  az vm create -g $RG -l $LOC -n $VM --image Ubuntu2204 --size Standard_D2ads_v6 \
     --admin-username azureuser --generate-ssh-keys \
     --availability-set avset1 --public-ip-address ""
 done
@@ -2081,7 +2081,7 @@ for VM in vm1 vm2; do
 done
 
 # Step 3: A VM created outside the set
-az vm create -g $RG -l $LOC -n vm3 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm3 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys --public-ip-address ""
 
 # Step 3: Try to put it into the set - fails (must recreate the VM)
@@ -2092,19 +2092,19 @@ az vm update -g $RG -n vm3 --set availabilitySet.id=$AVSET_ID
 az vm delete -g $RG --ids $(az vm list -g $RG --query "[].id" -o tsv) --yes
 
 # Step 4: Zones offered for B1s in this region
-az vm list-skus -l $LOC --size Standard_B1s --zone \
+az vm list-skus -l $LOC --size Standard_D2ads_v6 --zone \
   --query "[].locationInfo[].zones" -o tsv
 
 # Step 4: One VM per zone, then delete them
-az vm create -g $RG -l $LOC -n vm-z1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm-z1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys --zone 1 --public-ip-address ""
-az vm create -g $RG -l $LOC -n vm-z2 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm-z2 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys --zone 2 --public-ip-address ""
 az vm list -g $RG --query "[].{name:name, zone:zones[0]}" -o table
 az vm delete -g $RG --ids $(az vm list -g $RG --query "[].id" -o tsv) --yes
 
 # Step 5: VMSS with 2 instances (creates its own VNet and load balancer)
-az vmss create -g $RG -l $LOC -n vmss1 --image Ubuntu2204 --vm-sku Standard_B1s \
+az vmss create -g $RG -l $LOC -n vmss1 --image Ubuntu2204 --vm-sku Standard_D2ads_v6 \
   --instance-count 2 --admin-username azureuser --generate-ssh-keys \
   --orchestration-mode Uniform --upgrade-policy-mode Automatic
 az vmss list-instances -g $RG -n vmss1 -o table
@@ -2385,7 +2385,7 @@ LAW_ID=$(az monitor log-analytics workspace show -g $RG -n law-lab --query id -o
 LAW_GUID=$(az monitor log-analytics workspace show -g $RG -n law-lab --query customerId -o tsv)
 
 # Step 2: VM with a system-assigned managed identity
-az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys --assign-identity
 VM_ID=$(az vm show -g $RG -n vm1 --query id -o tsv)
 
@@ -2499,7 +2499,7 @@ RETAIN=$(date -u -d "+30 days" '+%d-%m-%Y')      # Linux
 az group create -n $RG -l $LOC
 
 # Step 1: VM and an important file
-az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_B1s \
+az vm create -g $RG -l $LOC -n vm1 --image Ubuntu2204 --size Standard_D2ads_v6 \
   --admin-username azureuser --generate-ssh-keys
 az vm run-command invoke -g $RG -n vm1 --command-id RunShellScript \
   --scripts "echo 'quan trong' > /home/azureuser/important.txt"
