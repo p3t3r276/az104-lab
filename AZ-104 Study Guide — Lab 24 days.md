@@ -2176,14 +2176,14 @@ EXP=$(date -u -d "+7 days" '+%Y-%m-%dT%H:%MZ')     # Linux
 # EXP=$(date -u -v+7d '+%Y-%m-%dT%H:%MZ')          # macOS
 az group create -n $RG -l $LOC
 
-# Step 1: Sample .NET 8 API and a zip package
-dotnet new webapi -n LabApi -o LabApi
+# Step 1: Sample .NET 10 API and a zip package
+dotnet new webapi -n LabApi -o LabApi --framework net10.0
 dotnet publish LabApi -c Release -o publish
 (cd publish && zip -r ../app.zip .)
 
 # Step 2: Basic Linux plan and web app
 az appservice plan create -g $RG -l $LOC -n plan1 --sku B1 --is-linux
-az webapp create -g $RG -p plan1 -n $APP --runtime "DOTNETCORE:8.0"
+az webapp create -g $RG -p plan1 -n $APP --runtime "DOTNETCORE:10.0"
 
 # Step 2: Deploy and call the API
 az webapp deploy -g $RG -n $APP --src-path app.zip --type zip
