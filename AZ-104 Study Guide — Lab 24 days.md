@@ -2149,16 +2149,16 @@ az group delete -n $RG --yes --no-wait
 
 **Tự kiểm tra:** VM cần SLA 99,99% thì triển khai thế nào? VMSS đang 4 instance, CPU còn 10% nhưng không giảm, nguyên nhân hay gặp là gì?
 
-## Ngày 18 — App Service
+## Ngày 18 — App Service ✅
 
-**Mục tiêu:** deploy API .NET 8 lên App Service; thấy tier quyết định tính năng (slot, autoscale, backup); làm slot swap với slot setting.
+**Mục tiêu:** deploy API .NET 10 lên App Service; thấy tier quyết định tính năng (slot, autoscale, backup); làm slot swap với slot setting.
 
 **Dùng lại:** Ngày 7 (storage), Ngày 8 (SAS bằng account key), Ngày 17 (autoscale).
 
 **Các bước lab:**
 
 1. Tạo API mẫu `LabApi` bằng `dotnet new webapi`, đóng gói zip.
-2. Tạo plan B1 Linux, web app .NET 8, deploy zip, gọi `/weatherforecast`.
+2. Tạo plan B1 Linux, web app .NET 10, deploy zip, gọi `/weatherforecast`.
 3. Thử tạo deployment slot trên B1 (bị chặn); scale up lên S1 rồi tạo slot `staging`.
 4. Đặt 1 setting thường và 1 *slot setting* ở staging; swap; xem setting nào đi theo.
 5. Scale out thủ công lên 2, sau đó cấu hình autoscale cho plan.
@@ -2179,7 +2179,7 @@ az group create -n $RG -l $LOC
 # Step 1: Sample .NET 10 API and a zip package
 dotnet new webapi -n LabApi -o LabApi --framework net10.0
 dotnet publish LabApi -c Release -o publish
-(cd publish && zip -r ../app.zip .)
+cd publish && zip -r ../app.zip . && cd ../
 
 # Step 2: Basic Linux plan and web app
 az appservice plan create -g $RG -l $LOC -n plan1 --sku B1 --is-linux
