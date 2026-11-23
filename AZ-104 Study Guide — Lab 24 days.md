@@ -2599,7 +2599,7 @@ az group delete -n $RG --yes --no-wait
 - [ ] Mock exam 2, mục tiêu trên 80%
 - [ ] So sánh với mock 1: domain nào đã cải thiện, domain nào chưa
 
-## Ngày 24 — Ôn tổng hợp và dọn subscription
+## Ngày 24 — Ôn tổng hợp và dọn subscription ✅
 
 **Mục tiêu:** không lab nữa; đọc lại bảng tổng hợp, dọn sạch những thứ không nằm trong resource group, nghỉ sớm.
 
@@ -2640,8 +2640,7 @@ az group delete -n $RG --yes --no-wait
 ```bash
 # Prep: variables
 SUB=$(az account show --query id -o tsv)
-DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains \
-  --query "value[?isDefault].id" -o tsv)
+DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query "value[?isDefault].id" -o tsv)
 
 # Any lab resource groups left
 ~/cleanup.sh
