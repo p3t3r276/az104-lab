@@ -2251,7 +2251,7 @@ az group delete -n $RG --yes --no-wait
 
 **Tự kiểm tra:** Connection string của staging trỏ DB test, sau khi swap production có bị trỏ nhầm DB test không? Phụ thuộc vào cấu hình nào?
 
-## Ngày 19 — ACR, ACI, Container Apps
+## Ngày 19 — ACR, ACI, Container Apps ✅
 
 **Mục tiêu:** đóng gói `LabApi` thành image, đẩy lên *ACR*, chạy bằng *ACI* và *Container Apps*; thấy khác biệt về scale.
 
@@ -2281,12 +2281,12 @@ dotnet new webapi -n LabApi -o LabApi
 
 # Step 1: Multi-stage Dockerfile (.NET 8 images listen on 8080)
 cat > LabApi/Dockerfile << 'EOF'
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
 RUN dotnet publish -c Release -o /app
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
 ENTRYPOINT ["dotnet", "LabApi.dll"]
@@ -2300,7 +2300,7 @@ az acr build -r $ACR -t labapi:v1 LabApi
 
 # Step 2: Fallback if ACR Tasks is blocked - build locally and push
 az acr login -n $ACR
-docker build -t $ACR.azurecr.io/labapi:v1 LabApi
+docker build -t $ACR.azurecr.io/labapi:v1 --platform linux/amd64 LabApi
 docker push $ACR.azurecr.io/labapi:v1
 
 # Step 2: Check the repository and tag
@@ -2316,7 +2316,7 @@ az container create -g $RG -l $LOC -n aci-api --image $ACR.azurecr.io/labapi:v1 
   --dns-name-label aci-$ACR \
   --registry-login-server $ACR.azurecr.io \
   --registry-username $ACR_USER --registry-password $ACR_PASS \
-  --restart-policy OnFailure
+  --restart-policy OnFailure --no-wait
 
 # Step 3: State, logs, call the API
 az container show -g $RG -n aci-api --query "{state:instanceView.state, fqdn:ipAddress.fqdn}"
@@ -2348,7 +2348,7 @@ az group delete -n $RG --yes --no-wait
 
 **Điểm hay thi:**
 
-- ACR SKU: Basic, Standard, Premium. Geo-replication và private endpoint chỉ có ở Premium.
+- ACR SKU: Basic, Standard, Premium. Geo-replication và private endpoint chỉ có ở `Premium`.
 - ACI restart policy: Always (mặc định), OnFailure, Never. Container group chạy chung host, chung IP.
 - Container Apps scale theo HTTP/event, có scale to zero; ACI không tự scale.
 - Thay admin user bằng managed identity + role *AcrPull* là cách khuyến nghị cho production.
